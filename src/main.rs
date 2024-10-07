@@ -5,7 +5,7 @@ mod chassis;
 
 use core::time::Duration;
 
-use vexide::{core::time::Instant, prelude::*};
+use vexide::{core::time::Instant, devices::screen::*, prelude::*};
 
 use crate::chassis::*;
 
@@ -60,8 +60,11 @@ async fn main(peripherals: Peripherals) {
     let chassis = TankChassis::new(m_l1, m_l2, m_lt, m_r1, m_r2, m_rt);
 
     let mut master = peripherals.primary_controller;
+    let mut scr = peripherals.screen;
 
     while !master.button_y.was_pressed().unwrap_or(false) {
+        let obj = Text::new("press y", TextSize::Small, (0, 0));
+        scr.fill(&obj, Rgb::WHITE);
         sleep(Duration::new(0, 20_000_000)).await;
     }
 
