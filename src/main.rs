@@ -30,7 +30,7 @@ impl Compete for Robot {
             // TODO: confirm if `as f32` is correct
             let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
             let steer: f32 = self.controller.right_stick.x().unwrap_or(0.0) as f32;
-            self.chassis.move_arcade(throttle, steer);
+            self.chassis.move_arcade(throttle, -steer);
 
             sleep_until(time_start + Duration::new(0, 20_000_000)).await;
         }
@@ -39,9 +39,9 @@ impl Compete for Robot {
 
 #[vexide::main]
 async fn main(peripherals: Peripherals) {
-    let m_l1 = Motor::new(peripherals.port_5, Gearset::Blue, Direction::Reverse);
-    let m_l2 = Motor::new(peripherals.port_6, Gearset::Blue, Direction::Reverse);
-    let m_lt = Motor::new(peripherals.port_7, Gearset::Blue, Direction::Forward);
+    let m_l1 = Motor::new(peripherals.port_6, Gearset::Blue, Direction::Reverse);
+    let m_l2 = Motor::new(peripherals.port_7, Gearset::Blue, Direction::Reverse);
+    let m_lt = Motor::new(peripherals.port_8, Gearset::Blue, Direction::Forward);
 
     let m_r1 = Motor::new(peripherals.port_20, Gearset::Blue, Direction::Forward);
     let m_r2 = Motor::new(peripherals.port_19, Gearset::Blue, Direction::Forward);
