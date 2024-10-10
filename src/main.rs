@@ -4,21 +4,22 @@
 #[macro_use]
 extern crate alloc;
 
-mod chassis;
+mod arm;
+mod tank_chassis;
 
 use core::time::Duration;
 
 use vexide::{core::time::Instant, devices::screen::*, prelude::*};
 
-use crate::chassis::*;
+use crate::{arm::Arm, tank_chassis::TankChassis};
 
 struct Robot {
     controller: Controller,
     chassis: TankChassis,
 
     intake: Motor,
-    lift: Motor,
-    wrist: Motor,
+
+    arm: Arm,
 }
 
 impl Compete for Robot {
@@ -34,9 +35,19 @@ impl Compete for Robot {
         loop {
             let time_start = Instant::now();
 
-            if self.controller.right_trigger_2.is_pressed().unwrap_or(false) {
+            if self
+                .controller
+                .right_trigger_2
+                .is_pressed()
+                .unwrap_or(false)
+            {
                 self.intake.set_voltage(12.0).ok();
-            } else if self.controller.right_trigger_1.is_pressed().unwrap_or(false) {
+            } else if self
+                .controller
+                .right_trigger_1
+                .is_pressed()
+                .unwrap_or(false)
+            {
                 self.intake.set_voltage(-12.0).ok();
             } else {
                 self.intake.brake(BrakeMode::Brake).ok();
@@ -86,8 +97,7 @@ async fn main(peripherals: Peripherals) {
         controller: master,
         chassis: drive,
         intake: m_h_intake,
-        lift: m_h_lift,
-        wrist: m_wrist,
+        arm: Arm::new(m_h_lift, m_wrist),
     };
 
     robot.compete().await;
