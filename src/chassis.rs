@@ -1,24 +1,19 @@
+use alloc::vec::Vec;
+
 use vexide::prelude::*;
 
-// TOOD:  swtich to list of motors
 pub struct TankChassis {
-    l1: Motor,
-    l2: Motor,
-    lt: Motor,
-    r1: Motor,
-    r2: Motor,
-    rt: Motor,
+    left: Vec<Motor>,
+    right: Vec<Motor>,
 }
 
 impl TankChassis {
     pub fn new(l1: Motor, l2: Motor, lt: Motor, r1: Motor, r2: Motor, rt: Motor) -> Self {
+        let vec_left: Vec<Motor> = vec![l1, l2, lt];
+        let vec_right: Vec<Motor> = vec![r1, r2, rt];
         TankChassis {
-            l1,
-            l2,
-            lt,
-            r1,
-            r2,
-            rt,
+            left: vec_left,
+            right: vec_right,
         }
     }
 
@@ -33,12 +28,12 @@ impl TankChassis {
         }
         left *= 12.0;
         right *= 12.0;
-        self.l1.set_voltage(left.into()).ok();
-        self.l2.set_voltage(left.into()).ok();
-        self.lt.set_voltage(left.into()).ok();
-        self.r1.set_voltage(right.into()).ok();
-        self.r2.set_voltage(right.into()).ok();
-        self.rt.set_voltage(right.into()).ok();
+        for motor in self.left.iter_mut() {
+            motor.set_voltage(left.into()).ok();
+        }
+        for motor in self.right.iter_mut() {
+            motor.set_voltage(right.into()).ok();
+        }
     }
 
     pub fn move_arcade(&mut self, mut throttle: f32, mut steer: f32) {
@@ -48,11 +43,11 @@ impl TankChassis {
     }
 
     pub fn stop(&mut self, mode: BrakeMode) {
-        self.l1.brake(mode).ok();
-        self.l2.brake(mode).ok();
-        self.lt.brake(mode).ok();
-        self.r1.brake(mode).ok();
-        self.r2.brake(mode).ok();
-        self.rt.brake(mode).ok();
+        for motor in self.left.iter_mut() {
+            motor.brake(mode).ok();
+        }
+        for motor in self.right.iter_mut() {
+            motor.brake(mode).ok();
+        }
     }
 }

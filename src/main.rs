@@ -1,6 +1,9 @@
 #![no_main]
 #![no_std]
 
+#[macro_use]
+extern crate alloc;
+
 mod chassis;
 
 use core::time::Duration;
@@ -12,6 +15,10 @@ use crate::chassis::*;
 struct Robot {
     controller: Controller,
     chassis: TankChassis,
+
+    intake: Motor,
+    lift: Motor,
+    wrist: Motor,
 }
 
 impl Compete for Robot {
@@ -27,7 +34,14 @@ impl Compete for Robot {
         loop {
             let time_start = Instant::now();
 
-            // TODO: confirm if `as f32` is correct
+            if self.controller.right_trigger_2.is_pressed().unwrap_or(false) {
+                self.intake.set_voltage(12.0).ok();
+            } else if self.controller.right_trigger_1.is_pressed().unwrap_or(false) {
+                self.intake.set_voltage(-12.0).ok();
+            } else {
+                self.intake.brake(BrakeMode::Brake).ok();
+            }
+
             let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
             let steer: f32 = self.controller.right_stick.x().unwrap_or(0.0) as f32;
             self.chassis.move_arcade(throttle, -steer);
@@ -47,17 +61,17 @@ async fn main(peripherals: Peripherals) {
     let m_r2 = Motor::new(peripherals.port_19, Gearset::Blue, Direction::Forward);
     let m_rt = Motor::new(peripherals.port_18, Gearset::Blue, Direction::Reverse);
 
+    let m_h_lift = Motor::new(peripherals.port_3, Gearset::Green, Direction::Forward);
+    let m_wrist = Motor::new(peripherals.port_4, Gearset::Red, Direction::Forward);
+
+    let m_h_intake = Motor::new(peripherals.port_10, Gearset::Green, Direction::Reverse);
+
     /*
-    let mut m_h_lift = Motor::new(peripherals.port_3, Gearset::Green, Direction::Forward);
-    let mut m_wrist = Motor::new(peripherals.port_4, Gearset::Red, Direction::Forward);
-
-    let mut m_h_intake = Motor::new(peripherals.port_10, Gearset::Green, Direction::Reverse);
-
     let mut odom_x = RotationSensor::new(peripherals.port_11, Direction::Forward);
     odom_x.set_data_rate(Duration::from_millis(5)).ok();
     */
 
-    let chassis = TankChassis::new(m_l1, m_l2, m_lt, m_r1, m_r2, m_rt);
+    let drive = TankChassis::new(m_l1, m_l2, m_lt, m_r1, m_r2, m_rt);
 
     let mut master = peripherals.primary_controller;
     let mut scr = peripherals.screen;
@@ -70,7 +84,10 @@ async fn main(peripherals: Peripherals) {
 
     let robot = Robot {
         controller: master,
-        chassis,
+        chassis: drive,
+        intake: m_h_intake,
+        lift: m_h_lift,
+        wrist: m_wrist,
     };
 
     robot.compete().await;
