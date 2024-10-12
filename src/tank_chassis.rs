@@ -1,4 +1,5 @@
 use alloc::vec::Vec;
+
 use vexide::prelude::*;
 
 pub struct TankChassis {
@@ -35,9 +36,7 @@ impl TankChassis {
         }
     }
 
-    pub fn move_arcade(&mut self, mut throttle: f32, mut steer: f32) {
-        throttle = throttle.clamp(-1.0, 1.0);
-        steer = steer.clamp(-1.0, 1.0);
+    pub fn move_arcade(&mut self, throttle: f32, steer: f32) {
         self.move_tank(throttle - steer, throttle + steer);
     }
 
