@@ -1,3 +1,6 @@
+pub mod model;
+pub mod mp;
+
 use alloc::vec::Vec;
 
 use vexide::prelude::*;
@@ -40,7 +43,7 @@ impl TankChassis {
         self.move_tank(throttle - steer, throttle + steer);
     }
 
-    pub fn stop(&mut self, mode: BrakeMode) {
+    pub fn brake(&mut self, mode: BrakeMode) {
         for motor in self.left.iter_mut() {
             motor.brake(mode).ok();
         }

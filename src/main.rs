@@ -27,7 +27,7 @@ impl Compete for Robot {
         println!("Autonomous!");
         self.chassis.move_tank(1.0, 1.0);
         sleep(Duration::new(0, 500_000_000)).await;
-        self.chassis.stop(BrakeMode::Brake);
+        self.chassis.brake(BrakeMode::Brake);
     }
 
     async fn driver(&mut self) {
