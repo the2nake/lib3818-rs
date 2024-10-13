@@ -15,8 +15,7 @@ pub struct TankVelocities {
 
 impl TankModel {
     fn wheel_vels(&self, linear_velocity: f64, curvature: f64) -> TankVelocities {
-        // if turning left is positive curvature
-        // TODO: put this as -curvature if turning right is positive
+        // turning left is positive curvature
         let angular_velocity = linear_velocity * curvature;
 
         let left_r = 1.0 / curvature - self.track_width / 2.0;
