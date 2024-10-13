@@ -11,7 +11,7 @@ use core::time::Duration;
 
 use vexide::{core::time::Instant, devices::screen::*, prelude::*};
 
-use crate::{arm::Arm, tank_chassis::TankChassis};
+use crate::{arm::*, tank_chassis::TankChassis};
 
 struct Robot {
     controller: Controller,
@@ -32,9 +32,13 @@ impl Compete for Robot {
 
     async fn driver(&mut self) {
         println!("Driver!");
+
+        let mut scoring_millis = 0.0;
+
         loop {
             let time_start = Instant::now();
 
+            // drive the intake using right triggers
             if self
                 .controller
                 .right_trigger_2
@@ -53,11 +57,34 @@ impl Compete for Robot {
                 self.intake.brake(BrakeMode::Brake).ok();
             }
 
+            // send score signal if left trigger is pressed
+            let mut signal = ArmSignal::None;
+            if self
+                .controller
+                .left_trigger_2
+                .was_pressed()
+                .unwrap_or(false)
+            {
+                signal = ArmSignal::Score;
+            }
+            // scoring timeout
+            if self.arm.state() == "scoring" {
+                scoring_millis += 20.0;
+            } else {
+                scoring_millis = 0.0;
+            }
+            if scoring_millis >= 500.0 {
+                signal = ArmSignal::Return;
+            }
+            self.arm.update(signal);
+            // perform the action
+            self.arm.act();
+
             let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
             let steer: f32 = self.controller.right_stick.x().unwrap_or(0.0) as f32;
             self.chassis.move_arcade(throttle, -steer);
 
-            sleep_until(time_start + Duration::new(0, 20_000_000)).await;
+            sleep_until(time_start + Duration::from_millis(20)).await;
         }
     }
 }
@@ -90,15 +117,21 @@ async fn main(peripherals: Peripherals) {
     while !master.button_y.was_pressed().unwrap_or(false) {
         let obj = Text::new("press y", TextSize::Small, (0, 0));
         scr.fill(&obj, Rgb::WHITE);
-        sleep(Duration::new(0, 20_000_000)).await;
+        sleep(Duration::from_millis(20)).await;
     }
 
-    let robot = Robot {
+    let mut robot = Robot {
         controller: master,
         chassis: drive,
         intake: m_h_intake,
         arm: Arm::new(m_h_lift, m_wrist),
     };
+
+    while robot.arm.state() != "ready" {
+        robot.arm.update(ArmSignal::None);
+        robot.arm.act();
+        sleep(Duration::from_millis(20)).await;
+    }
 
     robot.compete().await;
 }
