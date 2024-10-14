@@ -87,7 +87,7 @@ struct Readying {}
 
 impl ArmState for Readying {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, READY_LIFT_POS, 200, wrist, READY_WRIST_POS, 70);
+        arm_move(lift, READY_LIFT_POS, 200, wrist, READY_WRIST_POS, 100);
     }
 
     fn update(
@@ -114,7 +114,14 @@ struct Ready {}
 
 impl ArmState for Ready {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, READY_LIFT_POS, LIFT_VEL, wrist, READY_WRIST_POS, WRIST_VEL);
+        arm_move(
+            lift,
+            READY_LIFT_POS,
+            LIFT_VEL,
+            wrist,
+            READY_WRIST_POS,
+            WRIST_VEL,
+        );
     }
 
     fn update(
@@ -138,7 +145,14 @@ struct Scoring {}
 
 impl ArmState for Scoring {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, SCORE_LIFT_POS, LIFT_VEL, wrist, SCORE_WRIST_POS, WRIST_VEL);
+        arm_move(
+            lift,
+            SCORE_LIFT_POS,
+            LIFT_VEL,
+            wrist,
+            SCORE_WRIST_POS,
+            WRIST_VEL,
+        );
     }
 
     fn update(
