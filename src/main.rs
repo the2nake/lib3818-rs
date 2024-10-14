@@ -162,4 +162,4 @@ async fn main(peripherals: Peripherals) {
     robot.compete().await;
 }
 
-// TODO: fix the bug where things start actuated
+// ! fix the bug where things start actuated
