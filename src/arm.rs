@@ -9,11 +9,14 @@ use vexide::prelude::*;
 const LIFT_THRESHOLD: f64 = 4.0;
 const WRIST_THRESHOLD: f64 = 3.0;
 
-const READY_LIFT_POS: f64 = 360.0;
+const LIFT_VEL: i32 = 120;
+const WRIST_VEL: i32 = 70;
+
+const READY_LIFT_POS: f64 = 380.0;
 const READY_WRIST_POS: f64 = -130.0;
 
-const SCORE_LIFT_POS: f64 = 530.0;
-const SCORE_WRIST_POS: f64 = 90.0;
+const SCORE_LIFT_POS: f64 = 580.0;
+const SCORE_WRIST_POS: f64 = 100.0;
 
 pub enum ArmSignal {
     None,
@@ -84,7 +87,7 @@ struct Readying {}
 
 impl ArmState for Readying {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, READY_LIFT_POS, 200, wrist, READY_WRIST_POS, 100);
+        arm_move(lift, READY_LIFT_POS, 200, wrist, READY_WRIST_POS, 70);
     }
 
     fn update(
@@ -111,7 +114,7 @@ struct Ready {}
 
 impl ArmState for Ready {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, READY_LIFT_POS, 200, wrist, READY_WRIST_POS, 100);
+        arm_move(lift, READY_LIFT_POS, LIFT_VEL, wrist, READY_WRIST_POS, WRIST_VEL);
     }
 
     fn update(
@@ -135,7 +138,7 @@ struct Scoring {}
 
 impl ArmState for Scoring {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, SCORE_LIFT_POS, 200, wrist, SCORE_WRIST_POS, 100);
+        arm_move(lift, SCORE_LIFT_POS, LIFT_VEL, wrist, SCORE_WRIST_POS, WRIST_VEL);
     }
 
     fn update(

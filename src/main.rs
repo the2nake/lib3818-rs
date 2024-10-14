@@ -5,28 +5,32 @@
 extern crate alloc;
 
 mod arm;
+mod piston;
 mod tank_chassis;
 
+use alloc::string::{String, ToString};
 use core::time::Duration;
 
 use vexide::{core::time::Instant, devices::screen::*, prelude::*};
 
-use crate::{arm::*, tank_chassis::TankChassis};
+use crate::{arm::*, piston::Piston, tank_chassis::TankChassis};
 
 struct Robot {
+    screen: Screen,
     controller: Controller,
     chassis: TankChassis,
 
     intake: Motor,
 
     arm: Arm,
+    clamp: Piston,
 }
 
 impl Compete for Robot {
     async fn autonomous(&mut self) {
         println!("Autonomous!");
         self.chassis.move_tank(1.0, 1.0);
-        sleep(Duration::new(0, 500_000_000)).await;
+        sleep(Duration::from_secs_f32(0.5)).await;
         self.chassis.brake(BrakeMode::Brake);
     }
 
@@ -59,12 +63,7 @@ impl Compete for Robot {
 
             // send score signal if left trigger is pressed
             let mut signal = ArmSignal::None;
-            if self
-                .controller
-                .left_trigger_2
-                .was_pressed()
-                .unwrap_or(false)
-            {
+            if self.controller.left_trigger_2.is_pressed().unwrap_or(false) {
                 signal = ArmSignal::Score;
             }
             // scoring timeout
@@ -73,12 +72,41 @@ impl Compete for Robot {
             } else {
                 scoring_millis = 0.0;
             }
-            if scoring_millis >= 500.0 {
+            if scoring_millis >= 1000.0 {
                 signal = ArmSignal::Return;
             }
             self.arm.update(signal);
             // perform the action
             self.arm.act();
+
+            if self
+                .controller
+                .left_trigger_1
+                .was_pressed()
+                .unwrap_or(false)
+            {
+                self.clamp.toggle();
+            }
+
+            // display arm state
+            let obj = Text::new(
+                (String::from("arm state: ") + self.arm.state()).as_str(),
+                TextSize::Small,
+                (0, 0),
+            );
+            self.screen.fill(&obj, Rgb::WHITE);
+
+            let text_height = obj.height();
+            // display clamp state
+            let obj = Text::new(
+                (String::from("clamp state: ")
+                    + self.clamp.activated().to_string().as_str()
+                    + "      ")
+                    .as_str(),
+                TextSize::Small,
+                (0, text_height as i16),
+            );
+            self.screen.fill(&obj, Rgb::WHITE);
 
             let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
             let steer: f32 = self.controller.right_stick.x().unwrap_or(0.0) as f32;
@@ -104,6 +132,8 @@ async fn main(peripherals: Peripherals) {
 
     let m_h_intake = Motor::new(peripherals.port_10, Gearset::Green, Direction::Reverse);
 
+    let adi_clamp = AdiDigitalOut::new(peripherals.adi_a);
+
     /*
     let mut odom_x = RotationSensor::new(peripherals.port_11, Direction::Forward);
     odom_x.set_data_rate(Duration::from_millis(5)).ok();
@@ -111,20 +141,24 @@ async fn main(peripherals: Peripherals) {
 
     let drive = TankChassis::new(m_l1, m_l2, m_lt, m_r1, m_r2, m_rt);
 
-    let mut master = peripherals.primary_controller;
-    let mut scr = peripherals.screen;
+    let master = peripherals.primary_controller;
+    let scr = peripherals.screen;
 
+    /*
     while !master.button_y.was_pressed().unwrap_or(false) {
         let obj = Text::new("press y", TextSize::Small, (0, 0));
         scr.fill(&obj, Rgb::WHITE);
         sleep(Duration::from_millis(20)).await;
     }
+    */
 
     let mut robot = Robot {
+        screen: scr,
         controller: master,
         chassis: drive,
         intake: m_h_intake,
         arm: Arm::new(m_h_lift, m_wrist),
+        clamp: Piston::new(adi_clamp, false),
     };
 
     while robot.arm.state() != "ready" {
@@ -135,3 +169,5 @@ async fn main(peripherals: Peripherals) {
 
     robot.compete().await;
 }
+
+// TODO: fix the bug where things start actuated
