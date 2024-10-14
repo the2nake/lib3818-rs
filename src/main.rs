@@ -62,7 +62,7 @@ impl Compete for Robot {
             }
 
             // send score signal if left trigger is pressed
-            let mut signal = ArmSignal::None;
+            let mut signal = ArmSignal::Empty;
             if self.controller.left_trigger_2.is_pressed().unwrap_or(false) {
                 signal = ArmSignal::Score;
             }
@@ -144,14 +144,6 @@ async fn main(peripherals: Peripherals) {
     let master = peripherals.primary_controller;
     let scr = peripherals.screen;
 
-    /*
-    while !master.button_y.was_pressed().unwrap_or(false) {
-        let obj = Text::new("press y", TextSize::Small, (0, 0));
-        scr.fill(&obj, Rgb::WHITE);
-        sleep(Duration::from_millis(20)).await;
-    }
-    */
-
     let mut robot = Robot {
         screen: scr,
         controller: master,
@@ -162,7 +154,7 @@ async fn main(peripherals: Peripherals) {
     };
 
     while robot.arm.state() != "ready" {
-        robot.arm.update(ArmSignal::None);
+        robot.arm.update(ArmSignal::Empty);
         robot.arm.act();
         sleep(Duration::from_millis(20)).await;
     }

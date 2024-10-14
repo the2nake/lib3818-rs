@@ -19,7 +19,7 @@ const SCORE_LIFT_POS: f64 = 580.0;
 const SCORE_WRIST_POS: f64 = 100.0;
 
 pub enum ArmSignal {
-    None,
+    Empty,
     Score,
     Return,
 }
