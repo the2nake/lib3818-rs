@@ -12,17 +12,27 @@ const WRIST_THRESHOLD: f64 = 3.0;
 const LIFT_VEL: i32 = 120;
 const WRIST_VEL: i32 = 70;
 
-const READY_LIFT_POS: f64 = 380.0;
-const READY_WRIST_POS: f64 = -130.0;
+const ACCEPT_LIFT_POS: f64 = 365.0;
+const ACCEPT_WRIST_POS: f64 = -130.0;
 
-const SCORE_LIFT_POS: f64 = 580.0;
-const SCORE_WRIST_POS: f64 = 100.0;
+const READY_LIFT_POS: f64 = 365.0;
+const READY_WRIST_POS: f64 = -50.0;
+
+const SCORE_LIFT_POS: f64 = 450.0;
+const SCORE_WRIST_POS: f64 = 130.0;
+
+const RELEASE_LIFT_POS: f64 = 610.0;
+const RELEASE_WRIST_POS: f64 = 130.0;
 
 pub enum ArmSignal {
     Empty,
     Score,
     Return,
 }
+
+// ! transition from target to target in the ready state? different ready threshold in ready state
+
+// ! change this to take from the motor target
 
 fn motor_ready(mtr: &Motor, deg: f64, thres: f64) -> bool {
     (mtr.position().unwrap_or_default().as_degrees() - deg).abs() < thres
@@ -52,7 +62,7 @@ pub struct Arm {
 impl Arm {
     pub fn new(lift: Motor, wrist: Motor) -> Self {
         Arm {
-            state: Some(Box::new(Readying {})),
+            state: Some(Box::new(Returning {})),
             lift,
             wrist,
         }
@@ -83,11 +93,11 @@ trait ArmState {
     fn state_name(&self) -> &str;
 }
 
-struct Readying {}
+struct Returning {}
 
-impl ArmState for Readying {
+impl ArmState for Returning {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, READY_LIFT_POS, 200, wrist, READY_WRIST_POS, 100);
+        arm_move(lift, ACCEPT_LIFT_POS, 200, wrist, ACCEPT_WRIST_POS, 100);
     }
 
     fn update(
@@ -96,17 +106,48 @@ impl ArmState for Readying {
         wrist: &Motor,
         _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        let lift_ready = motor_ready(lift, READY_LIFT_POS, LIFT_THRESHOLD);
-        let wrist_ready = motor_ready(wrist, READY_WRIST_POS, WRIST_THRESHOLD);
+        let lift_ready = motor_ready(lift, ACCEPT_LIFT_POS, LIFT_THRESHOLD);
+        let wrist_ready = motor_ready(wrist, ACCEPT_WRIST_POS, WRIST_THRESHOLD);
         if lift_ready && wrist_ready {
-            Box::new(Ready {})
+            Box::new(Accepting {})
         } else {
             self
         }
     }
 
     fn state_name(&self) -> &str {
-        "readying"
+        "returning"
+    }
+}
+
+struct Accepting {}
+
+impl ArmState for Accepting {
+    fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
+        arm_move(
+            lift,
+            ACCEPT_LIFT_POS,
+            LIFT_VEL,
+            wrist,
+            ACCEPT_WRIST_POS,
+            WRIST_VEL,
+        );
+    }
+
+    fn update(
+        self: Box<Self>,
+        _lift: &Motor,
+        _wrist: &Motor,
+        signal: ArmSignal,
+    ) -> Box<dyn ArmState> {
+        match signal {
+            ArmSignal::Score => Box::new(Ready {}),
+            _ => self,
+        }
+    }
+
+    fn state_name(&self) -> &str {
+        "accepting"
     }
 }
 
@@ -126,13 +167,16 @@ impl ArmState for Ready {
 
     fn update(
         self: Box<Self>,
-        _lift: &Motor,
-        _wrist: &Motor,
-        signal: ArmSignal,
+        lift: &Motor,
+        wrist: &Motor,
+        _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        match signal {
-            ArmSignal::Score => Box::new(Scoring {}),
-            _ => self,
+        let lift_ready = motor_ready(lift, READY_LIFT_POS, LIFT_THRESHOLD);
+        let wrist_ready = motor_ready(wrist, READY_WRIST_POS, WRIST_THRESHOLD + 20.0);
+        if lift_ready && wrist_ready {
+            Box::new(Scoring {})
+        } else {
+            self
         }
     }
 
@@ -162,13 +206,13 @@ impl ArmState for Scoring {
         signal: ArmSignal,
     ) -> Box<dyn ArmState> {
         if matches!(signal, ArmSignal::Return) {
-            return Box::new(Readying {});
+            return Box::new(Returning {});
         }
 
         let lift_ready = motor_ready(lift, SCORE_LIFT_POS, LIFT_THRESHOLD);
         let wrist_ready = motor_ready(wrist, SCORE_WRIST_POS, WRIST_THRESHOLD);
         if lift_ready && wrist_ready {
-            Box::new(Readying {})
+            Box::new(Releasing {})
         } else {
             self
         }
@@ -176,5 +220,39 @@ impl ArmState for Scoring {
 
     fn state_name(&self) -> &str {
         "scoring"
+    }
+}
+
+struct Releasing {}
+
+impl ArmState for Releasing {
+    fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
+        arm_move(
+            lift,
+            RELEASE_LIFT_POS,
+            LIFT_VEL,
+            wrist,
+            RELEASE_WRIST_POS,
+            WRIST_VEL,
+        );
+    }
+
+    fn update(
+        self: Box<Self>,
+        lift: &Motor,
+        wrist: &Motor,
+        _signal: ArmSignal,
+    ) -> Box<dyn ArmState> {
+        let lift_ready = motor_ready(lift, RELEASE_LIFT_POS, LIFT_THRESHOLD);
+        let wrist_ready = motor_ready(wrist, RELEASE_WRIST_POS, WRIST_THRESHOLD + 10.0);
+        if lift_ready && wrist_ready {
+            Box::new(Returning {})
+        } else {
+            self
+        }
+    }
+
+    fn state_name(&self) -> &str {
+        "releasing"
     }
 }

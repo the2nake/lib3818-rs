@@ -64,6 +64,8 @@ impl Compete for Robot {
             // send score signal if left trigger is pressed
             let mut signal = ArmSignal::Empty;
             if self.controller.left_trigger_2.is_pressed().unwrap_or(false) {
+                let obj = Text::new("toggled score button", TextSize::Small, (0, 80));
+                self.screen.fill(&obj, Rgb::RED);
                 signal = ArmSignal::Score;
             }
             // scoring timeout
@@ -85,12 +87,14 @@ impl Compete for Robot {
                 .was_pressed()
                 .unwrap_or(false)
             {
+                let obj = Text::new("toggled clamp button", TextSize::Small, (0, 80));
+                self.screen.fill(&obj, Rgb::RED);
                 self.clamp.toggle();
             }
 
             // display arm state
             let obj = Text::new(
-                (String::from("arm state: ") + self.arm.state()).as_str(),
+                (String::from("arm state: ") + self.arm.state() + "    ").as_str(),
                 TextSize::Small,
                 (0, 0),
             );
@@ -108,6 +112,7 @@ impl Compete for Robot {
             );
             self.screen.fill(&obj, Rgb::WHITE);
 
+            // arcade control
             let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
             let steer: f32 = self.controller.right_stick.x().unwrap_or(0.0) as f32;
             self.chassis.move_arcade(throttle, -steer);
@@ -141,8 +146,10 @@ async fn main(peripherals: Peripherals) {
 
     let drive = TankChassis::new(m_l1, m_l2, m_lt, m_r1, m_r2, m_rt);
 
-    let master = peripherals.primary_controller;
+    let mut master = peripherals.primary_controller;
     let scr = peripherals.screen;
+
+    master.left_trigger_1.was_pressed().ok();
 
     let mut robot = Robot {
         screen: scr,
@@ -153,7 +160,7 @@ async fn main(peripherals: Peripherals) {
         clamp: Piston::new(adi_clamp, false),
     };
 
-    while robot.arm.state() != "ready" {
+    while robot.arm.state() != "accepting" {
         robot.arm.update(ArmSignal::Empty);
         robot.arm.act();
         sleep(Duration::from_millis(20)).await;
@@ -161,5 +168,3 @@ async fn main(peripherals: Peripherals) {
 
     robot.compete().await;
 }
-
-// ! fix the bug where things start actuated

@@ -6,10 +6,15 @@ pub struct Piston {
 }
 
 impl Piston {
-    pub fn new(adi: AdiDigitalOut, default_high: bool) -> Self {
+    pub fn new(mut adi: AdiDigitalOut, initial: bool) -> Self {
+        if initial {
+            adi.set_high().ok();
+        } else {
+            adi.set_low().ok();
+        }
         Piston {
             adi_out: adi,
-            activated: default_high,
+            activated: initial,
         }
     }
 
