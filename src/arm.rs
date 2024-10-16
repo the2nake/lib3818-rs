@@ -18,10 +18,10 @@ const ACCEPT_WRIST_POS: f64 = -130.0;
 const READY_LIFT_POS: f64 = 365.0;
 const READY_WRIST_POS: f64 = -50.0;
 
-const SCORE_LIFT_POS: f64 = 450.0;
+const SCORE_LIFT_POS: f64 = 460.0;
 const SCORE_WRIST_POS: f64 = 130.0;
 
-const RELEASE_LIFT_POS: f64 = 610.0;
+const RELEASE_LIFT_POS: f64 = 620.0;
 const RELEASE_WRIST_POS: f64 = 130.0;
 
 pub enum ArmSignal {
@@ -34,8 +34,20 @@ pub enum ArmSignal {
 
 // ! change this to take from the motor target
 
-fn motor_ready(mtr: &Motor, deg: f64, thres: f64) -> bool {
-    (mtr.position().unwrap_or_default().as_degrees() - deg).abs() < thres
+fn motor_ready(mtr: &Motor, thres: f64) -> bool {
+    let target: MotorControl = mtr
+        .target()
+        .unwrap_or(MotorControl::Brake(BrakeMode::Brake));
+    match target {
+        MotorControl::Brake(_) => true,
+        MotorControl::Position(pos, _) => {
+            (mtr.position().unwrap_or_default() - pos)
+                .as_degrees()
+                .abs()
+                < thres
+        }
+        _ => false,
+    }
 }
 
 fn arm_move(
@@ -106,8 +118,8 @@ impl ArmState for Returning {
         wrist: &Motor,
         _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        let lift_ready = motor_ready(lift, ACCEPT_LIFT_POS, LIFT_THRESHOLD);
-        let wrist_ready = motor_ready(wrist, ACCEPT_WRIST_POS, WRIST_THRESHOLD);
+        let lift_ready = motor_ready(lift, LIFT_THRESHOLD);
+        let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD);
         if lift_ready && wrist_ready {
             Box::new(Accepting {})
         } else {
@@ -171,8 +183,8 @@ impl ArmState for Ready {
         wrist: &Motor,
         _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        let lift_ready = motor_ready(lift, READY_LIFT_POS, LIFT_THRESHOLD);
-        let wrist_ready = motor_ready(wrist, READY_WRIST_POS, WRIST_THRESHOLD + 20.0);
+        let lift_ready = motor_ready(lift, LIFT_THRESHOLD);
+        let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD + 20.0);
         if lift_ready && wrist_ready {
             Box::new(Scoring {})
         } else {
@@ -209,8 +221,8 @@ impl ArmState for Scoring {
             return Box::new(Returning {});
         }
 
-        let lift_ready = motor_ready(lift, SCORE_LIFT_POS, LIFT_THRESHOLD);
-        let wrist_ready = motor_ready(wrist, SCORE_WRIST_POS, WRIST_THRESHOLD);
+        let lift_ready = motor_ready(lift, LIFT_THRESHOLD);
+        let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD);
         if lift_ready && wrist_ready {
             Box::new(Releasing {})
         } else {
@@ -243,8 +255,8 @@ impl ArmState for Releasing {
         wrist: &Motor,
         _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        let lift_ready = motor_ready(lift, RELEASE_LIFT_POS, LIFT_THRESHOLD);
-        let wrist_ready = motor_ready(wrist, RELEASE_WRIST_POS, WRIST_THRESHOLD + 10.0);
+        let lift_ready = motor_ready(lift, LIFT_THRESHOLD);
+        let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD + 10.0);
         if lift_ready && wrist_ready {
             Box::new(Returning {})
         } else {
