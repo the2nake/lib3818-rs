@@ -9,20 +9,20 @@ use vexide::prelude::*;
 const LIFT_THRESHOLD: f64 = 4.0;
 const WRIST_THRESHOLD: f64 = 3.0;
 
-const LIFT_VEL: i32 = 120;
+const LIFT_VEL: i32 = 200;
 const WRIST_VEL: i32 = 70;
 
-const ACCEPT_LIFT_POS: f64 = 365.0;
+const ACCEPT_LIFT_POS: f64 = 375.0;
 const ACCEPT_WRIST_POS: f64 = -130.0;
 
-const READY_LIFT_POS: f64 = 365.0;
+const READY_LIFT_POS: f64 = 375.0;
 const READY_WRIST_POS: f64 = -50.0;
 
-const SCORE_LIFT_POS: f64 = 460.0;
+const SCORE_LIFT_POS: f64 = 360.0;
 const SCORE_WRIST_POS: f64 = 130.0;
 
-const RELEASE_LIFT_POS: f64 = 620.0;
-const RELEASE_WRIST_POS: f64 = 130.0;
+const RELEASE_LIFT_POS: f64 = 600.0;
+const RELEASE_WRIST_POS: f64 = 90.0;
 
 pub enum ArmSignal {
     Empty,
@@ -109,7 +109,16 @@ struct Returning {}
 
 impl ArmState for Returning {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(lift, ACCEPT_LIFT_POS, 200, wrist, ACCEPT_WRIST_POS, 100);
+        if wrist
+            .position()
+            .unwrap_or(Position::from_degrees(0.0))
+            .as_degrees()
+            <= 0.0
+        {
+            arm_move(lift, ACCEPT_LIFT_POS, 200, wrist, ACCEPT_WRIST_POS, 100);
+        } else {
+            arm_move(lift, RELEASE_LIFT_POS, 200, wrist, ACCEPT_WRIST_POS, 100);
+        }
     }
 
     fn update(
@@ -183,8 +192,8 @@ impl ArmState for Ready {
         wrist: &Motor,
         _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        let lift_ready = motor_ready(lift, LIFT_THRESHOLD);
-        let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD + 20.0);
+        let lift_ready = motor_ready(lift, LIFT_THRESHOLD + 20.0);
+        let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD + 30.0);
         if lift_ready && wrist_ready {
             Box::new(Scoring {})
         } else {
