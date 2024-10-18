@@ -12,4 +12,4 @@ icon = "cool-x"
 compress = true
 
 [dependencies]
-vexide = "0.4.1"
+vexide = "0.4.2"

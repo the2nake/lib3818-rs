@@ -64,8 +64,6 @@ impl Compete for Robot {
             // send score signal if left trigger is pressed
             let mut signal = ArmSignal::Empty;
             if self.controller.left_trigger_2.is_pressed().unwrap_or(false) {
-                let obj = Text::new("toggled score button", TextSize::Small, (0, 80));
-                self.screen.fill(&obj, Rgb::RED);
                 signal = ArmSignal::Score;
             }
             // scoring timeout
@@ -81,14 +79,7 @@ impl Compete for Robot {
             // perform the action
             self.arm.act();
 
-            if self
-                .controller
-                .left_trigger_1
-                .was_pressed()
-                .unwrap_or(false)
-            {
-                let obj = Text::new("toggled clamp button", TextSize::Small, (0, 80));
-                self.screen.fill(&obj, Rgb::RED);
+            if self.controller.button_left.was_pressed().unwrap_or(false) {
                 self.clamp.toggle();
             }
 
@@ -114,7 +105,7 @@ impl Compete for Robot {
 
             // arcade control
             let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
-            let steer: f32 = self.controller.right_stick.x().unwrap_or(0.0) as f32;
+            let steer: f32 = 0.7 * self.controller.right_stick.x().unwrap_or(0.0) as f32;
             self.chassis.move_arcade(throttle, -steer);
 
             sleep_until(time_start + Duration::from_millis(20)).await;
@@ -146,10 +137,8 @@ async fn main(peripherals: Peripherals) {
 
     let drive = TankChassis::new(m_l1, m_l2, m_lt, m_r1, m_r2, m_rt);
 
-    let mut master = peripherals.primary_controller;
+    let master = peripherals.primary_controller;
     let scr = peripherals.screen;
-
-    master.left_trigger_1.was_pressed().ok();
 
     let mut robot = Robot {
         screen: scr,
