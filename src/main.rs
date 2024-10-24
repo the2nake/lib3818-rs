@@ -5,6 +5,7 @@
 extern crate alloc;
 
 mod arm;
+mod localisation;
 mod piston;
 mod tank_chassis;
 
