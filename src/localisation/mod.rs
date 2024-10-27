@@ -65,7 +65,7 @@ pub struct Pose {
     h: Heading,
 }
 
-trait Odom {
+trait Localiser {
     fn pose(&self) -> Pose;
     fn update(&mut self);
 }
