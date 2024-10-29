@@ -12,13 +12,13 @@ const WRIST_THRESHOLD: f64 = 3.0;
 const LIFT_VEL: i32 = 200;
 const WRIST_VEL: i32 = 70;
 
-const ACCEPT_LIFT_POS: f64 = 375.0;
+const ACCEPT_LIFT_POS: f64 = 390.0;
 const ACCEPT_WRIST_POS: f64 = -130.0;
 
-const READY_LIFT_POS: f64 = 375.0;
+const READY_LIFT_POS: f64 = ACCEPT_LIFT_POS;
 const READY_WRIST_POS: f64 = -50.0;
 
-const SCORE_LIFT_POS: f64 = 360.0;
+const SCORE_LIFT_POS: f64 = 320.0;
 const SCORE_WRIST_POS: f64 = 130.0;
 
 const RELEASE_LIFT_POS: f64 = 600.0;
@@ -188,11 +188,11 @@ impl ArmState for Ready {
 
     fn update(
         self: Box<Self>,
-        lift: &Motor,
+        _lift: &Motor,
         wrist: &Motor,
         _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        let lift_ready = motor_ready(lift, LIFT_THRESHOLD + 20.0);
+        let lift_ready = true; // motor_ready(lift, LIFT_THRESHOLD + 20.0);
         let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD + 30.0);
         if lift_ready && wrist_ready {
             Box::new(Scoring {})
@@ -248,14 +248,30 @@ struct Releasing {}
 
 impl ArmState for Releasing {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor) {
-        arm_move(
-            lift,
-            RELEASE_LIFT_POS,
-            LIFT_VEL,
-            wrist,
-            RELEASE_WRIST_POS,
-            WRIST_VEL,
-        );
+        if lift
+            .position()
+            .unwrap_or(Position::from_degrees(0.0))
+            .as_degrees()
+            <= 570.0
+        {
+            arm_move(
+                lift,
+                RELEASE_LIFT_POS,
+                LIFT_VEL,
+                wrist,
+                SCORE_WRIST_POS,
+                WRIST_VEL,
+            );
+        } else {
+            arm_move(
+                lift,
+                RELEASE_LIFT_POS,
+                LIFT_VEL,
+                wrist,
+                RELEASE_WRIST_POS,
+                WRIST_VEL,
+            );
+        }
     }
 
     fn update(

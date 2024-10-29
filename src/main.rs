@@ -138,8 +138,10 @@ async fn main(peripherals: Peripherals) {
 
     let drive = TankChassis::new(m_l1, m_l2, m_lt, m_r1, m_r2, m_rt);
 
-    let master = peripherals.primary_controller;
+    let mut master = peripherals.primary_controller;
     let scr = peripherals.screen;
+
+    master.button_left.was_pressed().ok();
 
     let mut robot = Robot {
         screen: scr,

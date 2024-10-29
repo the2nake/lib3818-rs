@@ -1,6 +1,6 @@
 # lib3818-rs
 
-A modular library for v5rc using vexide.
+A modular control and state estimation library for v5rc using vexide.
 
 ## Features
 
@@ -16,6 +16,10 @@ A modular library for v5rc using vexide.
   - [ ] path following
   - [ ] constant angle joints
   - [ ] variable angle joints
+- [ ] localisation
+  - [ ] odometry
+  - [ ] particle filtering
+  - [ ] unscented kalman filter
 
 ## Notes
 
@@ -30,6 +34,8 @@ If `rust-analyzer` shows errors for `not a supported ABI for the current target`
 
 - delete target wasm32-unknown-unknown in `.cargo/config.toml`.
 - delete wasm32-unknown-unknown from `"rust-analyzer.check.targets"` in `.vscode/settings.json`.
+
+Spellings are in British English.
 
 ## Contributors
 
