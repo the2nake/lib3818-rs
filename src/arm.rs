@@ -260,7 +260,7 @@ impl ArmState for Releasing {
                 LIFT_VEL,
                 wrist,
                 SCORE_WRIST_POS,
-                WRIST_VEL,
+                100,
             );
         } else {
             arm_move(
@@ -269,7 +269,7 @@ impl ArmState for Releasing {
                 LIFT_VEL,
                 wrist,
                 RELEASE_WRIST_POS,
-                WRIST_VEL,
+                100,
             );
         }
     }

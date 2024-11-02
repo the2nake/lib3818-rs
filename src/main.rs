@@ -9,8 +9,6 @@ mod piston;
 mod tank_chassis;
 
 use alloc::{
-    boxed::Box,
-    rc::Rc,
     string::{String, ToString},
     sync::Arc,
 };
@@ -34,7 +32,7 @@ struct Robot {
     arm: Arm,
     clamp: Piston,
 
-    localiser: Box<dyn Localiser>,
+    localiser: TrackingWheelLocaliser<TrackerAxisWheel, TrackerAxisDrive>,
 }
 
 impl Compete for Robot {
@@ -149,14 +147,14 @@ async fn main(peripherals: Peripherals) {
     let chassis = Arc::new(Mutex::new(TankChassis::new(
         m_l1, m_l2, m_lt, m_r1, m_r2, m_rt,
     )));
-    let localiser = Box::new(TrackingWheelLocaliser::from_chassis_and_wheel(
-        TrackerAxisDrive::new(chassis.clone(), 254.0),
+    let localiser = TrackingWheelLocaliser::from_chassis_and_wheel(
         TrackerAxisWheel::new(
             RotationSensor::new(peripherals.port_11, Direction::Reverse),
             0.0,
         ),
+        TrackerAxisDrive::new(chassis.clone(), 254.0),
         Pose::new(0.0, 0.0, Heading::from_deg(90.0, AngleSystem::Cartesian)),
-    ));
+    );
 
     let mut master = peripherals.primary_controller;
     let scr = peripherals.screen;

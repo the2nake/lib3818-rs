@@ -1,4 +1,4 @@
-use alloc::{boxed::Box, sync::Arc};
+use alloc::sync::Arc;
 use core::f64::*;
 
 use vexide::{
@@ -82,7 +82,7 @@ impl Pose {
 
 pub trait Localiser {
     fn pose(&self) -> Pose;
-    fn update(&mut self);
+    async fn update(&mut self);
 
     fn set_pose(&mut self, pose: Pose);
 }
@@ -107,7 +107,11 @@ impl<TX: TrackingAxis, TY: TrackingAxis> Localiser for TrackingWheelLocaliser<TX
     fn pose(&self) -> Pose {
         self.pose
     }
-    fn update(&mut self) {}
+    async fn update(&mut self) {
+        self.pose.x = self.x_axis.deg().await;
+        self.pose.y = self.y_axis.deg().await;
+        self.pose.h.set_deg(0.0, AngleSystem::Cartesian);
+    }
     fn set_pose(&mut self, pose: Pose) {
         self.pose = pose;
     }
