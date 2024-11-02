@@ -51,4 +51,27 @@ impl TankChassis {
             motor.brake(mode).ok();
         }
     }
+
+    pub fn left_deg(&self) -> f64 {
+        let mut sum: f64 = 0.0;
+        for motor in self.left.iter() {
+            sum += motor
+                .position()
+                .unwrap_or(Position::from_degrees(0.0))
+                .as_degrees();
+        }
+
+        sum / self.left.len() as f64
+    }
+
+    pub fn right_deg(&self) -> f64 {
+        let mut sum: f64 = 0.0;
+        for motor in self.right.iter() {
+            sum += motor
+                .position()
+                .unwrap_or(Position::from_degrees(0.0))
+                .as_degrees();
+        }
+        sum / self.right.len() as f64
+    }
 }

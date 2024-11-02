@@ -19,10 +19,10 @@ const READY_LIFT_POS: f64 = ACCEPT_LIFT_POS;
 const READY_WRIST_POS: f64 = -50.0;
 
 const SCORE_LIFT_POS: f64 = 320.0;
-const SCORE_WRIST_POS: f64 = 130.0;
+const SCORE_WRIST_POS: f64 = 90.0;
 
-const RELEASE_LIFT_POS: f64 = 600.0;
-const RELEASE_WRIST_POS: f64 = 90.0;
+const RELEASE_LIFT_POS: f64 = 640.0;
+const RELEASE_WRIST_POS: f64 = 100.0;
 
 pub enum ArmSignal {
     Empty,
@@ -252,7 +252,7 @@ impl ArmState for Releasing {
             .position()
             .unwrap_or(Position::from_degrees(0.0))
             .as_degrees()
-            <= 570.0
+            <= 590.0
         {
             arm_move(
                 lift,
@@ -280,7 +280,7 @@ impl ArmState for Releasing {
         wrist: &Motor,
         _signal: ArmSignal,
     ) -> Box<dyn ArmState> {
-        let lift_ready = motor_ready(lift, LIFT_THRESHOLD);
+        let lift_ready = motor_ready(lift, LIFT_THRESHOLD + 5.0);
         let wrist_ready = motor_ready(wrist, WRIST_THRESHOLD + 10.0);
         if lift_ready && wrist_ready {
             Box::new(Returning {})
