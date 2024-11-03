@@ -23,7 +23,7 @@ use vexide::{
 use crate::{arm::*, localisation::*, piston::Piston, tank_chassis::TankChassis};
 
 struct Robot {
-    screen: Screen,
+    scr: Screen,
     controller: Controller,
     chassis: Arc<Mutex<TankChassis>>,
 
@@ -31,6 +31,7 @@ struct Robot {
 
     arm: Arm,
     clamp: Piston,
+    distance_cage: DistanceSensor,
 
     localiser: TrackingWheelLocaliser<TrackerAxisWheel, TrackerAxisDrive>,
 }
@@ -58,11 +59,18 @@ impl Compete for Robot {
             self.localiser.update().await;
 
             // drive the intake using right triggers
+            // block the intake if cage is full
             if self
                 .controller
                 .right_trigger_2
                 .is_pressed()
                 .unwrap_or(false)
+                && self
+                    .distance_cage
+                    .object()
+                    .unwrap_or(None)
+                    .is_none_or(|x| x.distance > 40)
+                && self.arm.state() == "accepting"
             {
                 self.intake.set_voltage(12.0).ok();
             } else if self
@@ -106,7 +114,7 @@ impl Compete for Robot {
                 TextSize::Small,
                 (0, 0),
             );
-            self.screen.fill(&obj, Rgb::WHITE);
+            self.scr.fill(&obj, Rgb::WHITE);
 
             let text_height = obj.height();
             // display clamp state
@@ -118,7 +126,7 @@ impl Compete for Robot {
                 TextSize::Small,
                 (0, text_height as i16),
             );
-            self.screen.fill(&obj, Rgb::WHITE);
+            self.scr.fill(&obj, Rgb::WHITE);
 
             // TODO: get better string concatenation
             // display position
@@ -128,7 +136,7 @@ impl Compete for Robot {
                 TextSize::Small,
                 (0, 2 * text_height as i16),
             );
-            self.screen.fill(&obj, Rgb::WHITE);
+            self.scr.fill(&obj, Rgb::WHITE);
 
             // arcade control
             let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
@@ -153,9 +161,11 @@ async fn main(peripherals: Peripherals) {
     let m_h_lift = Motor::new(peripherals.port_3, Gearset::Green, Direction::Forward);
     let m_wrist = Motor::new(peripherals.port_4, Gearset::Red, Direction::Forward);
 
-    let m_h_intake = Motor::new(peripherals.port_10, Gearset::Green, Direction::Reverse);
+    let intake = Motor::new(peripherals.port_10, Gearset::Green, Direction::Reverse);
 
     let adi_clamp = AdiDigitalOut::new(peripherals.adi_a);
+
+    let distance_cage = DistanceSensor::new(peripherals.port_12);
 
     let mut odom_x = RotationSensor::new(peripherals.port_11, Direction::Reverse);
     odom_x.set_data_rate(Duration::from_millis(5)).ok();
@@ -163,10 +173,11 @@ async fn main(peripherals: Peripherals) {
     let chassis = Arc::new(Mutex::new(TankChassis::new(
         m_l1, m_l2, m_lt, m_r1, m_r2, m_rt,
     )));
+
     let localiser = TrackingWheelLocaliser::from_chassis_and_wheel(
         TrackerAxisWheel::new(odom_x, 0.0),
         TrackerAxisDrive::new(chassis.clone(), 254.0),
-        Pose::new(0.0, 0.0, Heading::from_deg(90.0, AngleSystem::Cartesian)),
+        Pose::new(0.0, 0.0, Heading::new(0.0)),
     );
 
     let mut master = peripherals.primary_controller;
@@ -175,13 +186,14 @@ async fn main(peripherals: Peripherals) {
     master.button_left.was_pressed().ok();
 
     let mut robot = Robot {
-        screen: scr,
+        scr,
         controller: master,
         chassis,
         localiser,
-        intake: m_h_intake,
+        intake,
         arm: Arm::new(m_h_lift, m_wrist),
         clamp: Piston::new(adi_clamp, false),
+        distance_cage,
     };
 
     while robot.arm.state() != "accepting" {

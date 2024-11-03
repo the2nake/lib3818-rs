@@ -94,7 +94,7 @@ impl Arm {
     }
 
     pub fn state(&self) -> &str {
-        self.state.as_ref().unwrap().state_name()
+        self.state.as_ref().unwrap().name()
     }
 }
 
@@ -102,7 +102,7 @@ trait ArmState {
     fn act(&self, lift: &mut Motor, wrist: &mut Motor);
     fn update(self: Box<Self>, lift: &Motor, wrist: &Motor, signal: ArmSignal)
         -> Box<dyn ArmState>;
-    fn state_name(&self) -> &str;
+    fn name(&self) -> &str;
 }
 
 struct Returning {}
@@ -136,7 +136,7 @@ impl ArmState for Returning {
         }
     }
 
-    fn state_name(&self) -> &str {
+    fn name(&self) -> &str {
         "returning"
     }
 }
@@ -167,7 +167,7 @@ impl ArmState for Accepting {
         }
     }
 
-    fn state_name(&self) -> &str {
+    fn name(&self) -> &str {
         "accepting"
     }
 }
@@ -201,7 +201,7 @@ impl ArmState for Ready {
         }
     }
 
-    fn state_name(&self) -> &str {
+    fn name(&self) -> &str {
         "ready"
     }
 }
@@ -239,7 +239,7 @@ impl ArmState for Scoring {
         }
     }
 
-    fn state_name(&self) -> &str {
+    fn name(&self) -> &str {
         "scoring"
     }
 }
@@ -289,7 +289,7 @@ impl ArmState for Releasing {
         }
     }
 
-    fn state_name(&self) -> &str {
+    fn name(&self) -> &str {
         "releasing"
     }
 }
