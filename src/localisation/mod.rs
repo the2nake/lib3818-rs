@@ -82,11 +82,10 @@ impl Pose {
 
 pub trait Localiser {
     fn pose(&self) -> Pose;
-    async fn update(&mut self);
-
     fn set_pose(&mut self, pose: Pose);
 }
 
+// TODO: make pose thread-safe
 pub struct TrackingWheelLocaliser<TX: TrackingAxis, TY: TrackingAxis> {
     x_axis: TX,
     y_axis: TY,
@@ -101,16 +100,17 @@ impl<TX: TrackingAxis, TY: TrackingAxis> TrackingWheelLocaliser<TX, TY> {
             pose: init_pose,
         }
     }
+
+    pub async fn update(&mut self) {
+        self.pose.x = self.x_axis.deg().await;
+        self.pose.y = self.y_axis.deg().await;
+        self.pose.h.set_deg(0.0, AngleSystem::Cartesian);
+    }
 }
 
 impl<TX: TrackingAxis, TY: TrackingAxis> Localiser for TrackingWheelLocaliser<TX, TY> {
     fn pose(&self) -> Pose {
         self.pose
-    }
-    async fn update(&mut self) {
-        self.pose.x = self.x_axis.deg().await;
-        self.pose.y = self.y_axis.deg().await;
-        self.pose.h.set_deg(0.0, AngleSystem::Cartesian);
     }
     fn set_pose(&mut self, pose: Pose) {
         self.pose = pose;

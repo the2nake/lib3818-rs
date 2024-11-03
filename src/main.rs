@@ -51,6 +51,10 @@ impl Compete for Robot {
         loop {
             let time_start = Instant::now();
 
+            // sensor updates
+            // TODO: move to task
+            self.localiser.update().await;
+
             // drive the intake using right triggers
             if self
                 .controller
@@ -139,19 +143,14 @@ async fn main(peripherals: Peripherals) {
 
     let adi_clamp = AdiDigitalOut::new(peripherals.adi_a);
 
-    /*
-    let mut odom_x = RotationSensor::new(peripherals.port_11, Direction::Forward);
+    let mut odom_x = RotationSensor::new(peripherals.port_11, Direction::Reverse);
     odom_x.set_data_rate(Duration::from_millis(5)).ok();
-    */
 
     let chassis = Arc::new(Mutex::new(TankChassis::new(
         m_l1, m_l2, m_lt, m_r1, m_r2, m_rt,
     )));
     let localiser = TrackingWheelLocaliser::from_chassis_and_wheel(
-        TrackerAxisWheel::new(
-            RotationSensor::new(peripherals.port_11, Direction::Reverse),
-            0.0,
-        ),
+        TrackerAxisWheel::new(odom_x, 0.0),
         TrackerAxisDrive::new(chassis.clone(), 254.0),
         Pose::new(0.0, 0.0, Heading::from_deg(90.0, AngleSystem::Cartesian)),
     );
