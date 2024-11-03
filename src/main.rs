@@ -38,6 +38,8 @@ struct Robot {
 impl Compete for Robot {
     async fn autonomous(&mut self) {
         println!("Autonomous!");
+        self.localiser
+            .set_pose(Pose::new(0.0, 0.0, Heading::new(0.0)));
         self.chassis.lock().await.move_tank(1.0, 1.0);
         sleep(Duration::from_secs_f32(0.5)).await;
         self.chassis.lock().await.brake(BrakeMode::Brake);
@@ -96,6 +98,8 @@ impl Compete for Robot {
                 self.clamp.toggle();
             }
 
+            // display stuff
+            // TODO: move to tasks
             // display arm state
             let obj = Text::new(
                 (String::from("arm state: ") + self.arm.state() + "    ").as_str(),
@@ -113,6 +117,16 @@ impl Compete for Robot {
                     .as_str(),
                 TextSize::Small,
                 (0, text_height as i16),
+            );
+            self.screen.fill(&obj, Rgb::WHITE);
+
+            // TODO: get better string concatenation
+            // display position
+            let pose = self.localiser.pose();
+            let obj = Text::new(
+                (String::from("pose: ") + &pose.to_string()).as_str(),
+                TextSize::Small,
+                (0, 2 * text_height as i16),
             );
             self.screen.fill(&obj, Rgb::WHITE);
 
