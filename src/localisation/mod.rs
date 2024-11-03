@@ -69,14 +69,26 @@ impl Heading {
 }
 #[derive(Copy, Clone)]
 pub struct Pose {
-    x: f64,
-    y: f64,
-    h: Heading,
+    pub x: f64,
+    pub y: f64,
+    pub h: Heading,
 }
 
 impl Pose {
     pub fn new(x: f64, y: f64, h: Heading) -> Self {
         Pose { x, y, h }
+    }
+}
+
+impl core::fmt::Display for Pose {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "({}, {}, {})",
+            self.x,
+            self.y,
+            self.h.as_rad(AngleSystem::Cartesian)
+        )
     }
 }
 
