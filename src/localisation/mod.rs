@@ -166,43 +166,6 @@ impl<TX: TrackingAxis, TY: TrackingAxis> TrackingWheelLocaliser<TX, TY> {
         self.prev_deg_x = deg_x;
         self.prev_deg_y = deg_y;
         self.prev_heading = raw_h;
-        /*
-        let dh = self.pose.h.as_rad(AngleSystem::Cartesian) - self.prev_heading;
-
-        self.x_axis.pos();
-        self.y_axis.pos();
-
-        let mut x_impact_lx = 0.0;
-        let mut x_impact_ly = 0.0;
-        let mut y_impact_lx = 0.0;
-        let mut y_impact_ly = 0.0;
-
-        let is_low_turn = dh.abs().to_degrees() < 0.3;
-
-        if is_low_turn {
-            x_impact_lx = dx;
-            y_impact_ly = dy;
-        } else {
-            let tmp = -dx / dh - self.x_axis.pos();
-            x_impact_lx = tmp * dh.sin();
-            x_impact_ly = (dh.cos() - 1.0) * tmp;
-            let tmp = -dy / dh + self.y_axis.pos();
-            y_impact_lx = (1.0 - dh.cos()) * tmp;
-            y_impact_ly = dh.sin() * tmp;
-        }
-
-        let dx_l = x_impact_lx + y_impact_lx;
-        let dy_l = x_impact_ly + y_impact_ly;
-        let dx_g = dx_l * self.prev_heading.to_radians().cos()
-            + dy_l * self.prev_heading.to_radians().sin();
-        let dy_g = -dx_l * self.prev_heading.to_radians().sin()
-            + dy_l * self.prev_heading.to_radians().cos();
-
-        self.pose.x += dx_g;
-        self.pose.y += dy_g;
-        self.prev_heading = self.pose.h.rad;
-        self.prev_deg_x = deg_x;
-        self.prev_deg_y = deg_y;*/
     }
 }
 
@@ -212,6 +175,9 @@ impl<TX: TrackingAxis, TY: TrackingAxis> Localiser for TrackingWheelLocaliser<TX
     }
     fn set_pose(&mut self, pose: Pose) {
         self.pose = pose;
+        self.prev_deg_x = f64::NAN;
+        self.prev_deg_y = f64::NAN;
+        self.prev_heading = f64::NAN;
     }
 }
 
