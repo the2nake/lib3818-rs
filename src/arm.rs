@@ -12,17 +12,17 @@ const WRIST_THRESHOLD: f64 = 3.0;
 const LIFT_VEL: i32 = 200;
 const WRIST_VEL: i32 = 70;
 
-const ACCEPT_LIFT_POS: f64 = 390.0;
+const ACCEPT_LIFT_POS: f64 = 420.0;
 const ACCEPT_WRIST_POS: f64 = -130.0;
 
 const READY_LIFT_POS: f64 = ACCEPT_LIFT_POS;
 const READY_WRIST_POS: f64 = -50.0;
 
 const SCORE_LIFT_POS: f64 = 320.0;
-const SCORE_WRIST_POS: f64 = 90.0;
+const SCORE_WRIST_POS: f64 = 110.0;
 
 const RELEASE_LIFT_POS: f64 = 640.0;
-const RELEASE_WRIST_POS: f64 = 100.0;
+const RELEASE_WRIST_POS: f64 = 110.0;
 
 pub enum ArmSignal {
     Empty,
