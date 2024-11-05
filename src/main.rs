@@ -9,10 +9,7 @@ mod math;
 mod piston;
 mod tank_chassis;
 
-use alloc::{
-    string::{String, ToString},
-    sync::Arc,
-};
+use alloc::sync::Arc;
 use core::time::Duration;
 
 use vexide::{
@@ -145,12 +142,7 @@ impl Compete for Robot {
             // display position
             let pose = self.localiser.pose();
             let obj = Text::new(
-                format!(
-                    "pose: {}  {}                     ",
-                    pose,
-                    self.localiser.imu.heading().unwrap_or(0.0)
-                )
-                .as_str(),
+                format!("pose: {}                       ", pose).as_str(),
                 TextSize::Small,
                 (0, 2 * text_height as i16),
             );

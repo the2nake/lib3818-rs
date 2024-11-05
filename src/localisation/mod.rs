@@ -144,12 +144,24 @@ impl<TX: TrackingAxis, TY: TrackingAxis> TrackingWheelLocaliser<TX, TY> {
             dh = 0.0;
         }
 
-        print!("imu raw: {}\n", raw_h);
-        print!("raw internal: {}\n", self.pose.h.rad);
+        let ry = dy / dh - self.y_axis.pos(); // positive is left arc
+        let mut dy_l = ry * dh.sin();
+        let mut dx_l = ry * (1.0 - dh.cos());
+        let rx = dx / dh + self.x_axis.pos(); // positive is fwd arc
+        dy_l += rx * (dh.cos() - 1.0);
+        dx_l += rx * dh.sin();
 
-        self.pose.x += dx;
-        self.pose.y += dy;
+        if dh.abs() < 0.3_f64.to_radians() {
+            dx_l = dx;
+            dy_l = dy;
+        }
+
         self.pose.h.rad += dh;
+
+        let dx_g = dx_l * self.pose.h.rad.cos() - dy_l * self.pose.h.rad.sin();
+        let dy_g = dx_l * self.pose.h.rad.sin() + dy_l * self.pose.h.rad.cos();
+        self.pose.x += dx_g;
+        self.pose.y += dy_g;
 
         self.prev_deg_x = deg_x;
         self.prev_deg_y = deg_y;
