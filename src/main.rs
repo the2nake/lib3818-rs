@@ -5,6 +5,7 @@
 extern crate alloc;
 mod arm;
 mod localisation;
+mod math;
 mod piston;
 mod tank_chassis;
 
@@ -36,6 +37,26 @@ struct Robot {
     localiser: TrackingWheelLocaliser<TrackerAxisWheel, TrackerAxisDrive>,
 }
 
+impl Robot {
+    fn ring_in_cage(&self) -> bool {
+        /*
+        self.distance_cage
+            .object()
+            .unwrap_or(None)
+            .is_some_and(|x| x.distance < 35)
+            && self.arm.state() == "accepting";
+            */
+        true
+    }
+    fn cage_ready(&self) -> bool {
+        self.distance_cage
+            .object()
+            .unwrap_or(None)
+            .is_none_or(|x| x.distance > 40)
+            && self.arm.state() == "accepting"
+    }
+}
+
 impl Compete for Robot {
     async fn autonomous(&mut self) {
         println!("Autonomous!");
@@ -65,12 +86,7 @@ impl Compete for Robot {
                 .right_trigger_2
                 .is_pressed()
                 .unwrap_or(false)
-                && self
-                    .distance_cage
-                    .object()
-                    .unwrap_or(None)
-                    .is_none_or(|x| x.distance > 40)
-                && self.arm.state() == "accepting"
+                && self.cage_ready()
             {
                 self.intake.set_voltage(12.0).ok();
             } else if self
@@ -86,7 +102,7 @@ impl Compete for Robot {
 
             // send score signal if left trigger is pressed
             let mut signal = ArmSignal::Empty;
-            if self.controller.left_trigger_2.is_pressed().unwrap_or(false) {
+            if self.controller.left_trigger_2.is_pressed().unwrap_or(false) && self.ring_in_cage() {
                 signal = ArmSignal::Score;
             }
             // scoring timeout
@@ -110,7 +126,7 @@ impl Compete for Robot {
             // TODO: move to tasks
             // display arm state
             let obj = Text::new(
-                (String::from("arm state: ") + self.arm.state() + "    ").as_str(),
+                format!("arm state: {}     ", self.arm.state()).as_str(),
                 TextSize::Small,
                 (0, 0),
             );
@@ -119,10 +135,7 @@ impl Compete for Robot {
             let text_height = obj.height();
             // display clamp state
             let obj = Text::new(
-                (String::from("clamp state: ")
-                    + self.clamp.activated().to_string().as_str()
-                    + "      ")
-                    .as_str(),
+                format!("clamp state: {}     ", self.clamp.activated()).as_str(),
                 TextSize::Small,
                 (0, text_height as i16),
             );
@@ -132,7 +145,12 @@ impl Compete for Robot {
             // display position
             let pose = self.localiser.pose();
             let obj = Text::new(
-                (String::from("pose: ") + &pose.to_string()).as_str(),
+                format!(
+                    "pose: {}  {}                     ",
+                    pose,
+                    self.localiser.imu.heading().unwrap_or(0.0)
+                )
+                .as_str(),
                 TextSize::Small,
                 (0, 2 * text_height as i16),
             );
@@ -170,13 +188,16 @@ async fn main(peripherals: Peripherals) {
     let mut odom_x = RotationSensor::new(peripherals.port_11, Direction::Reverse);
     odom_x.set_data_rate(Duration::from_millis(5)).ok();
 
+    let imu = InertialSensor::new(peripherals.port_13);
+
     let chassis = Arc::new(Mutex::new(TankChassis::new(
         m_l1, m_l2, m_lt, m_r1, m_r2, m_rt,
     )));
 
     let localiser = TrackingWheelLocaliser::from_chassis_and_wheel(
-        TrackerAxisWheel::new(odom_x, 0.0),
-        TrackerAxisDrive::new(chassis.clone(), 254.0),
+        imu,
+        TrackerAxisWheel::new(odom_x, 220.0 / 360.0, 0.0),
+        TrackerAxisDrive::new(chassis.clone(), (48.0 / 60.0) * 220.0 / 360.0),
         Pose::new(0.0, 0.0, Heading::new(0.0)),
     );
 
