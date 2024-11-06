@@ -10,7 +10,7 @@ mod piston;
 mod tank_chassis;
 
 use alloc::sync::Arc;
-use core::time::Duration;
+use core::{f64::consts, time::Duration};
 
 use vexide::{
     core::{sync::Mutex, time::Instant},
@@ -18,7 +18,12 @@ use vexide::{
     prelude::*,
 };
 
-use crate::{arm::*, localisation::*, piston::Piston, tank_chassis::TankChassis};
+use crate::{
+    arm::*,
+    localisation::*,
+    piston::Piston,
+    tank_chassis::{boomerang::*, TankChassis},
+};
 
 struct Robot {
     scr: Screen,
@@ -31,7 +36,7 @@ struct Robot {
     clamp: Piston,
     distance_cage: DistanceSensor,
 
-    localiser: TrackingWheelLocaliser<TrackerAxisWheel, TrackerAxisDrive>,
+    localiser: Arc<Mutex<TrackingWheelLocaliser<TrackerAxisWheel, TrackerAxisDrive>>>,
 }
 
 impl Robot {
@@ -58,10 +63,39 @@ impl Compete for Robot {
     async fn autonomous(&mut self) {
         println!("Autonomous!");
         self.localiser
-            .set_pose(Pose::new(0.0, 0.0, Heading::new(0.0)));
-        self.chassis.lock().await.move_tank(1.0, 1.0);
-        sleep(Duration::from_secs_f32(0.5)).await;
-        self.chassis.lock().await.brake(BrakeMode::Brake);
+            .lock()
+            .await
+            .set_pose(Pose::new(0.0, 0.0, Heading::new(consts::FRAC_PI_2)));
+        let mut alg = TankPid::new(self.chassis.clone(), self.localiser.clone(), 0.5, 0.3);
+        let target = Pose::new(0.5, 0.5, Heading::new(0.0));
+        let mut pose = self.localiser.lock().await.pose();
+        while pose.dist(&target) > 0.05 {
+            let mut localiser_lock = self.localiser.lock().await;
+            localiser_lock.update().await;
+            pose = localiser_lock.pose();
+            let obj = Text::new(
+                format!("pose: {}                       ", pose).as_str(),
+                TextSize::Small,
+                (0, 0),
+            );
+            self.scr.fill(&obj, Rgb::WHITE);
+            drop(localiser_lock);
+            alg.approach_point(target).await;
+            sleep(Duration::from_millis(10)).await;
+        }
+        alg.brake(BrakeMode::Brake).await;
+        /*
+        let mut boom = Boomerang::new(alg, self.localiser.clone(), 0.5, 0.5, 0.02, 100);
+
+        // ! update odometry
+
+        // TODO: implement angle as an enum
+        boom.drive(
+            Pose::new(1.0, 1.0, Heading::from_deg(90.0, AngleSystem::Cartesian)),
+            BrakeMode::Brake,
+            1000,
+        )
+        .await;*/
     }
 
     async fn driver(&mut self) {
@@ -74,7 +108,8 @@ impl Compete for Robot {
 
             // sensor updates
             // TODO: move to task
-            self.localiser.update().await;
+            // ! move to a task
+            self.localiser.lock().await.update().await;
 
             // drive the intake using right triggers
             // block the intake if cage is full
@@ -140,7 +175,7 @@ impl Compete for Robot {
 
             // TODO: get better string concatenation
             // display position
-            let pose = self.localiser.pose();
+            let pose = self.localiser.lock().await.pose();
             let obj = Text::new(
                 format!("pose: {}                       ", pose).as_str(),
                 TextSize::Small,
@@ -149,8 +184,8 @@ impl Compete for Robot {
             self.scr.fill(&obj, Rgb::WHITE);
 
             // arcade control
-            let throttle: f32 = self.controller.left_stick.y().unwrap_or(0.0) as f32;
-            let steer: f32 = 0.7 * self.controller.right_stick.x().unwrap_or(0.0) as f32;
+            let throttle: f64 = self.controller.left_stick.y().unwrap_or(0.0);
+            let steer: f64 = 0.7 * self.controller.right_stick.x().unwrap_or(0.0);
             self.chassis.lock().await.move_arcade(throttle, -steer);
 
             sleep_until(time_start + Duration::from_millis(20)).await;
@@ -186,12 +221,12 @@ async fn main(peripherals: Peripherals) {
         m_l1, m_l2, m_lt, m_r1, m_r2, m_rt,
     )));
 
-    let localiser = TrackingWheelLocaliser::from_chassis_and_wheel(
+    let localiser = Arc::new(Mutex::new(TrackingWheelLocaliser::from_chassis_and_wheel(
         imu,
-        TrackerAxisWheel::new(odom_x, 220.0 / 360.0, 0.0),
-        TrackerAxisDrive::new(chassis.clone(), (48.0 / 60.0) * 220.0 / 360.0),
+        TrackerAxisWheel::new(odom_x, 0.220 / 360.0, 0.0),
+        TrackerAxisDrive::new(chassis.clone(), (48.0 / 60.0) * 0.220 / 360.0),
         Pose::new(0.0, 0.0, Heading::new(0.0)),
-    );
+    )));
 
     let mut master = peripherals.primary_controller;
     let scr = peripherals.screen;

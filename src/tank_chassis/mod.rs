@@ -1,5 +1,6 @@
 pub mod model;
 pub mod mp;
+pub mod boomerang;
 
 use alloc::vec::Vec;
 
@@ -20,7 +21,7 @@ impl TankChassis {
         }
     }
 
-    pub fn move_tank(&mut self, mut left: f32, mut right: f32) {
+    pub fn move_tank(&mut self, mut left: f64, mut right: f64) {
         if left.abs() > 1.0 || right.abs() > 1.0 {
             let mut max = left.abs();
             if right.abs() > left.abs() {
@@ -32,14 +33,14 @@ impl TankChassis {
         left *= 12.0;
         right *= 12.0;
         for motor in self.left.iter_mut() {
-            motor.set_voltage(left.into()).ok();
+            motor.set_voltage(left).ok();
         }
         for motor in self.right.iter_mut() {
-            motor.set_voltage(right.into()).ok();
+            motor.set_voltage(right).ok();
         }
     }
 
-    pub fn move_arcade(&mut self, throttle: f32, steer: f32) {
+    pub fn move_arcade(&mut self, throttle: f64, steer: f64) {
         self.move_tank(throttle - steer, throttle + steer);
     }
 

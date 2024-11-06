@@ -1,6 +1,6 @@
 # lib3818-rs
 
-A modular control and state estimation library for v5rc using vexide.
+A controls and state estimation library for v5rc using vexide.
 
 ## Features
 

@@ -60,6 +60,12 @@ impl Heading {
         }
     }
 }
+
+pub trait Point {
+    fn pos(&self) -> (f64, f64);
+    fn dist<T: Point>(&self, t: &T) -> f64;
+}
+
 #[derive(Copy, Clone)]
 pub struct Pose {
     pub x: f64,
@@ -81,6 +87,18 @@ impl core::fmt::Display for Pose {
             self.x,
             self.y,
             self.h.as_rad(AngleSystem::Cartesian)
+        )
+    }
+}
+
+impl Point for Pose {
+    fn pos(&self) -> (f64, f64) {
+        (self.x, self.y)
+    }
+    fn dist<T: Point>(&self, t: &T) -> f64 {
+        f64::sqrt(
+            (self.x - t.pos().0) * (self.x - t.pos().0)
+                + (self.y - t.pos().1) * (self.x - t.pos().1),
         )
     }
 }
