@@ -21,6 +21,7 @@ use vexide::{
 use crate::{
     arm::*,
     localisation::*,
+    math::*,
     piston::Piston,
     tank_chassis::{boomerang::*, TankChassis},
 };
@@ -36,7 +37,7 @@ struct Robot {
     clamp: Piston,
     distance_cage: DistanceSensor,
 
-    localiser: Arc<Mutex<TrackingWheelLocaliser<TrackerAxisWheel, TrackerAxisDrive>>>,
+    localiser: Arc<Mutex<TrackingWheelLocaliser<DeadWheelTrackingAxis, DriveTrackingAxis>>>,
 }
 
 impl Robot {
@@ -50,12 +51,44 @@ impl Robot {
             */
         true
     }
+    fn ring_ready_auto(&self) -> bool {
+        self.distance_cage
+            .object()
+            .unwrap_or(None)
+            .is_some_and(|x| x.distance < 35)
+            && self.arm.state() == "accepting"
+    }
     fn cage_ready(&self) -> bool {
         self.distance_cage
             .object()
             .unwrap_or(None)
             .is_none_or(|x| x.distance > 40)
             && self.arm.state() == "accepting"
+    }
+
+    async fn forward(&mut self, metres: f64) {
+        let pose0 = self.localiser.lock().await.pose();
+        let mut curr = pose0;
+        while curr.dist(&pose0) < metres {
+            curr = self.localiser.lock().await.pose();
+            self.chassis
+                .lock()
+                .await
+                .move_arcade((curr.dist(&pose0)) / metres.abs(), 0.0);
+            sleep(Duration::from_millis(20)).await;
+        }
+        self.chassis.lock().await.brake(BrakeMode::Brake);
+    }
+
+    async fn turn(&mut self, target: f64) {
+        let mut curr = self.localiser.lock().await.pose();
+        while shorter_rad(curr.h.as_rad(AngleSystem::Cartesian), target).abs() > 0.1 {
+            curr = self.localiser.lock().await.pose();
+            let delta = shorter_rad(curr.h.as_rad(AngleSystem::Cartesian), target);
+            self.chassis.lock().await.move_arcade(0.0, delta * 0.3);
+            sleep(Duration::from_millis(20)).await;
+        }
+        self.chassis.lock().await.brake(BrakeMode::Brake);
     }
 }
 
@@ -66,8 +99,19 @@ impl Compete for Robot {
             .lock()
             .await
             .set_pose(Pose::new(0.0, 0.0, Heading::new(consts::FRAC_PI_2)));
+
+        self.forward(1.0).await;
+        /*
         let mut alg = TankPid::new(self.chassis.clone(), self.localiser.clone(), 0.5, 0.3);
-        let target = Pose::new(0.5, 0.5, Heading::new(0.0));
+        let target = Pose::new(-0.5, 0.5, Heading::new(0.0));
+
+        if self.ring_ready_auto() {
+            self.arm.update(ArmSignal::Score);
+        } else {
+            self.arm.update(ArmSignal::Empty);
+        }
+        self.arm.act();
+
         let mut pose = self.localiser.lock().await.pose();
         while pose.dist(&target) > 0.05 {
             let mut localiser_lock = self.localiser.lock().await;
@@ -80,10 +124,13 @@ impl Compete for Robot {
             );
             self.scr.fill(&obj, Rgb::WHITE);
             drop(localiser_lock);
+            self.arm.update(ArmSignal::Empty);
+            self.arm.act();
             alg.approach_point(target).await;
             sleep(Duration::from_millis(10)).await;
         }
         alg.brake(BrakeMode::Brake).await;
+        */
         /*
         let mut boom = Boomerang::new(alg, self.localiser.clone(), 0.5, 0.5, 0.02, 100);
 
@@ -99,6 +146,7 @@ impl Compete for Robot {
     }
 
     async fn driver(&mut self) {
+        //self.autonomous().await;
         println!("Driver!");
 
         let mut scoring_millis = 0.0;
@@ -223,8 +271,8 @@ async fn main(peripherals: Peripherals) {
 
     let localiser = Arc::new(Mutex::new(TrackingWheelLocaliser::from_chassis_and_wheel(
         imu,
-        TrackerAxisWheel::new(odom_x, 0.220 / 360.0, 0.0),
-        TrackerAxisDrive::new(chassis.clone(), (48.0 / 60.0) * 0.220 / 360.0),
+        DeadWheelTrackingAxis::new(odom_x, 0.220 / 360.0, 0.0),
+        DriveTrackingAxis::new(chassis.clone(), (48.0 / 60.0) * 0.220 / 360.0),
         Pose::new(0.0, 0.0, Heading::new(0.0)),
     )));
 
@@ -244,11 +292,14 @@ async fn main(peripherals: Peripherals) {
         distance_cage,
     };
 
+    sleep(Duration::new(2, 0)).await;
     while robot.arm.state() != "accepting" {
         robot.arm.update(ArmSignal::Empty);
         robot.arm.act();
         sleep(Duration::from_millis(20)).await;
     }
+
+    // ! double exec
 
     robot.compete().await;
 }

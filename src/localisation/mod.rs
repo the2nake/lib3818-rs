@@ -98,7 +98,7 @@ impl Point for Pose {
     fn dist<T: Point>(&self, t: &T) -> f64 {
         f64::sqrt(
             (self.x - t.pos().0) * (self.x - t.pos().0)
-                + (self.y - t.pos().1) * (self.x - t.pos().1),
+                + (self.y - t.pos().1) * (self.y - t.pos().1),
         )
     }
 }
@@ -205,15 +205,15 @@ pub trait TrackingAxis {
     fn pos(&self) -> f64;
 }
 
-pub struct TrackerAxisWheel {
+pub struct DeadWheelTrackingAxis {
     sensor: RotationSensor,
     dist_per_deg: f64,
     pos: f64,
 }
 
-impl TrackerAxisWheel {
+impl DeadWheelTrackingAxis {
     pub fn new(sensor: RotationSensor, dist_per_deg: f64, pos: f64) -> Self {
-        TrackerAxisWheel {
+        DeadWheelTrackingAxis {
             sensor,
             dist_per_deg,
             pos,
@@ -221,7 +221,7 @@ impl TrackerAxisWheel {
     }
 }
 
-impl TrackingAxis for TrackerAxisWheel {
+impl TrackingAxis for DeadWheelTrackingAxis {
     async fn deg(&self) -> f64 {
         self.sensor
             .position()
@@ -238,21 +238,21 @@ impl TrackingAxis for TrackerAxisWheel {
     }
 }
 
-pub struct TrackerAxisDrive {
+pub struct DriveTrackingAxis {
     chassis: Arc<Mutex<TankChassis>>,
     ticks_per_deg: f64,
 }
 
-impl TrackerAxisDrive {
+impl DriveTrackingAxis {
     pub fn new(chassis: Arc<Mutex<TankChassis>>, ticks_per_deg: f64) -> Self {
-        TrackerAxisDrive {
+        DriveTrackingAxis {
             chassis,
             ticks_per_deg,
         }
     }
 }
 
-impl TrackingAxis for TrackerAxisDrive {
+impl TrackingAxis for DriveTrackingAxis {
     async fn deg(&self) -> f64 {
         let chassis = self.chassis.lock().await;
         (chassis.right_deg() + chassis.left_deg()) / 2.0

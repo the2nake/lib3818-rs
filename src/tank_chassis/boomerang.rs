@@ -42,6 +42,8 @@ impl<T: Localiser> MoveToPoint for TankPid<T> {
         let ang_target = err_y.atan2(err_x);
         let mut ang_err = shorter_rad(pose.h.as_rad(AngleSystem::Cartesian), ang_target);
 
+        println!("before correct {} {}", lin_err, ang_err);
+
         if ang_err.abs() > consts::FRAC_PI_2 {
             ang_err = shorter_rad(
                 pose.h.as_rad(AngleSystem::Cartesian),
@@ -50,10 +52,12 @@ impl<T: Localiser> MoveToPoint for TankPid<T> {
             lin_err *= -1.0;
         }
 
-        self.chassis.lock().await.move_arcade(
-            lin_err * self.lin_gain * ang_err.cos(),
-            ang_err * self.ang_gain,
-        );
+        println!("after correct {} {}", lin_err, ang_err);
+
+        self.chassis
+            .lock()
+            .await
+            .move_arcade(lin_err * self.lin_gain, ang_err * self.ang_gain);
     }
 
     async fn brake(&mut self, mode: BrakeMode) {
